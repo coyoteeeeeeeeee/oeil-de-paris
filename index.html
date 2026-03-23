@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>L'ŒIL DE PARIS // TERMINAL</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+
+  <!-- ── CARTE (fond plein écran) ── -->
+  <div id="map"></div>
+
+  <!-- ── CANVAS OVERLAY (heatmap + arrondissements dessinés par-dessus) ── -->
+  <canvas id="overlay"></canvas>
+
+  <!-- ── LOGIN ── -->
+  <div id="login-screen">
+    <div class="login-inner">
+      <h1>L'ŒIL DE PARIS</h1>
+      <p class="login-sub">// SYSTÈME DE SURVEILLANCE ACTIF //</p>
+      <p class="login-sub" style="margin-top:6px;font-size:10px;opacity:.4">
+        Carte satellite réelle · Monte Carlo 100× · 20 arrondissements
+      </p>
+      <button id="start-btn">▶ INITIALISER LA CONNEXION</button>
+    </div>
+  </div>
+
+  <!-- ── HUD ── -->
+  <div id="hud">
+    <h2>L'ŒIL DE PARIS // CORE</h2>
+    <p>STATUT : <span id="status-val">SURVEILLANCE</span></p>
+    <p>ZOOM : <span id="zoom-val">13</span></p>
+    <p>ZONE : <span id="arr-val">—</span></p>
+    <div class="divider"></div>
+    <p>VOLS VISIBLES : <span id="theft-count">0</span></p>
+    <p>MODE : <span id="sim-label">DONNÉES RÉELLES</span></p>
+    <div class="divider"></div>
+    <p class="hint">Scroll — Zoom</p>
+    <p class="hint">Clic + glisser — Déplacer</p>
+    <p class="hint">Clic marqueur — Détail zone</p>
+  </div>
+
+  <!-- ── MINI-MAP ── -->
+  <div id="minimap-container">
+    <div class="panel-label">RADAR // PARIS</div>
+    <canvas id="minimap" width="200" height="200"></canvas>
+    <div id="minimap-legend">
+      <span class="leg-dot red"></span>Vol&nbsp;
+      <span class="leg-dot green"></span>Retrouvé&nbsp;
+      <span class="leg-dot gold"></span>MC
+    </div>
+  </div>
+
+  <!-- ── DÉTAIL CLUSTER ── -->
+  <div id="detail-panel" style="display:none">
+    <div id="detail-header">
+      <span id="detail-title">Zone</span>
+      <button id="detail-close">✕</button>
+    </div>
+    <p id="detail-count"></p>
+    <p id="detail-found"></p>
+    <p id="detail-peak"></p>
+    <div class="chart-label">Répartition horaire</div>
+    <canvas id="hour-chart" width="220" height="60"></canvas>
+  </div>
+
+  <!-- ── FILTRES ── -->
+  <div id="filter-panel">
+    <div class="panel-label">FILTRES</div>
+    <div class="fp-row">
+      <label>Heure min : <span id="hour-min-val">0h</span></label>
+      <input type="range" id="filter-hour-min" min="0" max="23" value="0">
+    </div>
+    <div class="fp-row">
+      <label>Heure max : <span id="hour-max-val">23h</span></label>
+      <input type="range" id="filter-hour-max" min="0" max="23" value="23">
+    </div>
+    <div class="fp-row fp-check">
+      <label>Afficher retrouvés</label>
+      <input type="checkbox" id="filter-recovered" checked>
+    </div>
+    <div class="fp-row fp-check">
+      <label>Arrondissements</label>
+      <input type="checkbox" id="toggle-arr" checked>
+    </div>
+    <div class="fp-row fp-check">
+      <label>Heatmap</label>
+      <input type="checkbox" id="toggle-heat" checked>
+    </div>
+    <div class="fp-row" style="margin-top:10px">
+      <button id="present-toggle" style="width:100%;background:transparent;border:1px solid var(--dim);color:var(--text);font-family:inherit;font-size:9px;padding:6px;cursor:pointer;transition:.2s;letter-spacing:1px">⊡ MODE PRÉSENTATION</button>
+    </div>
+  </div>
+
+  <!-- ── MONTE CARLO ── -->
+  <div id="sim-panel">
+    <div class="panel-label" style="color:var(--gold)">MONTE CARLO</div>
+    <button id="sim-run-btn">▶ LANCER 100 SIMULATIONS</button>
+    <div id="sim-progress-wrap" style="display:none">
+      <div id="sim-progress-bar"></div>
+      <span id="sim-progress-label">0 / 100</span>
+    </div>
+    <div id="sim-results" style="display:none">
+      <div class="sim-sub">TOP ZONES À RISQUE</div>
+      <ol id="sim-ranking"></ol>
+      <div class="sim-sub" style="margin-top:6px">
+        HEURE CRITIQUE : <span id="sim-peak-hour" style="color:var(--danger)">—</span>
+      </div>
+      <div class="sim-sub">
+        RÉCUP. MOYENNE : <span id="sim-recov-rate" style="color:var(--accent)">—</span>
+      </div>
+      <button id="sim-reset-btn">↺ RÉINITIALISER</button>
+    </div>
+  </div>
+    <div id="stats-panel">
+    <div class="panel-label">STATISTIQUES RÉELLES 2023-2024</div>
+    <p>TOTAL VOLS : <span id="stat-total" style="color:var(--danger)">—</span></p>
+    <p>MOY. / JOUR : <span id="stat-daily" style="color:var(--danger)">—</span></p>
+    <p>RÉCUPÉRÉS : <span id="stat-recovery" style="color:var(--accent)">—</span></p>
+    <p>VÉLOS ÉLEC. : <span id="stat-ebike" style="color:var(--gold)">—</span></p>
+    <p>CRIME ORGANISÉ : <span id="stat-orga" style="color:var(--danger)">—</span></p>
+    <div class="chart-label">PROFIL HORAIRE RÉEL (pic : 18h)</div>
+    <canvas id="stats-hour-chart" width="220" height="55"></canvas>
+    <div class="chart-label" style="margin-top:10px">VUE ACTUELLE — <span id="live-count">0</span> vols</div>
+    <canvas id="live-histogram" width="220" height="40"></canvas>
+  </div>
+
+  <!-- ── URBAN ARCHITECT ── -->
+<div id="ua-panel">
+  <div class="panel-label" style="color:#4488ff">URBAN ARCHITECT</div>
+  <p id="ua-status" style="font-size:9px;color:#4488ff;min-height:14px;margin-bottom:8px;opacity:0;transition:opacity .3s"></p>
+  <button id="ua-start-btn">▶ LANCER DIGITAL TWIN</button>
+  <button id="ua-stop-btn" style="display:none">■ ARRÊTER</button>
+</div>
+
+  <!-- ── TIMELINE ── -->
+  <div id="timeline-panel">
+    <div id="timeline-top">
+      <span id="time-label">—</span>
+      <div id="tl-controls">
+        <button id="play-btn">▶</button>
+        <button id="speed-btn">×1</button>
+      </div>
+    </div>
+    <div id="timeline-bar">
+      <div id="timeline-thumb"></div>
+    </div>
+    <div id="tl-dates">
+      <span>Il y a 1 an</span><span>Aujourd'hui</span>
+    </div>
+  </div>
+
+  <!-- ── VISEUR ── -->
+  <div id="crosshair">+</div>
+  <div id="scan-line"></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
