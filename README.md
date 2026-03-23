@@ -1,5 +1,11 @@
 # L'ŒIL DE PARIS — Simulation de vols de vélos
 
+## Explication
+
+Ce projet fais guise de support bonus pour une présentation à l'oral en cours d'Anglais.
+L'oral avait pour but de, trouver une startup du MIT et l'adapter à une autre ville, tout en s'improvisant startup.
+Le sujet choisis était [Bike Tra|ffi|cking](https://senseable.mit.edu/bike-trafficking/), et nous avons choisi la ville de Paris.
+
 ## Structure du projet
 
 ```
